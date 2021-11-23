@@ -208,3 +208,12 @@
     (format port "    // expose raylib functions to guile\n")
     (for-each (lambda (f) (declare-function f port)) functions)
     (format port "}\n")))
+
+;; generate guile module
+(call-with-output-file scmoutput
+  (lambda (port)
+    (format port "(define-module (raylib)\n  #:export (")
+    (format port  "~a" (caar functions))
+    (for-each (lambda (f) (format port "\n            ~a" (car f))) (cdr functions))
+    (format port "))\n\n")
+    (format port "(load-extension \"libraylib-guile\" \"init_raylib_guile\")\n")))
