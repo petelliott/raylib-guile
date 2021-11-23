@@ -1,6 +1,10 @@
 
 all: libraylib-guile.so raylib.scm
 
+install: all
+	install libraylib-guile.so `pkg-config --variable=extensiondir guile-3.0`
+	install raylib.scm `pkg-config --variable=sitedir guile-3.0`
+
 libraylib-guile.so: raylib-guile.c
 	gcc `pkg-config --cflags guile-3.0` -shared -o $@ -fPIC $^ -lraylib
 
@@ -13,4 +17,4 @@ raylib_api.xml:
 clean:
 	rm raylib-guile.c libraylib-guile.so raylib.scm -f
 
-.PHONY: clean all
+.PHONY: clean all install
