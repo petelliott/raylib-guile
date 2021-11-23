@@ -181,6 +181,14 @@
   (format port "    return result;\n")
   (format port "}\n\n"))
 
+(define (declare-struct name port)
+  (format port "    rgtype_~a = scm_make_foreign_object_type(scm_from_utf8_symbol(\"~a\"), slots, NULL);\n"
+          name name))
+
+(define (declare-function f port)
+  (format port "    scm_c_define_gsubr(\"~a\", ~a, 0, 0, rgfun_~a);\n"
+          (car f) (length (cddr f)) (car f)))
+
 ;; generate c guile bindings
 (call-with-output-file coutput
   (lambda (port)
@@ -190,4 +198,13 @@
     (for-each (lambda (s) (format port "static SCM rgtype_~a;\n" s)) struct-names)
 
     (format port "\n// function definitions\n")
-    (for-each (lambda (f) (generate-function f port)) functions)))
+    (for-each (lambda (f) (generate-function f port)) functions)
+
+    (format port "\n// guile extension entry point\n")
+    (format port "void init_raylib_guile(void) {\n")
+    (format port "    // expose raylib structs to guile\n")
+    (format port "    SCM slots = scm_list_1 (scm_from_utf8_symbol (\"data\"));\n")
+    (for-each (lambda (s) (declare-struct s port)) struct-names)
+    (format port "    // expose raylib functions to guile\n")
+    (for-each (lambda (f) (declare-function f port)) functions)
+    (format port "}\n")))
