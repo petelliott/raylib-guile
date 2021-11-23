@@ -2,7 +2,8 @@
 !#
 (use-modules (sxml simple)
              (ice-9 format)
-             (ice-9 string-fun))
+             (ice-9 string-fun)
+             (srfi srfi-1))
 
 (define xml-file (cadr (command-line)))
 (define coutput "raylib-guile.c")
@@ -13,12 +14,33 @@
 
 (define raylibAPI (filter pair? (cddr (assoc 'raylibAPI (cdr xml)))))
 
-;; structs is of the form (name ...)
-(define struct-names
+;; structs is of the form ((name (field . value) ...) ...)
+(define structs
   (map (lambda (struct)
-         (cadr (assoc 'name (cdadr struct))))
+         (cons (cadr (assoc 'name (cdadr struct)))
+               (map (lambda (value)
+                      (cons (cadr (assoc 'name (cdadr value)))
+                            (cadr (assoc 'type (cdadr value)))))
+                    (filter pair? (cddr struct)))))
        (filter pair? (cddr (assoc 'Structs raylibAPI)))))
 
+(define struct-names (map car structs))
+
+;; TODO: add upstream support in raylib's parser for Matrix
+;; these structs are still available, but there are no accessors for them.
+(define struct-blacklist
+  '("Matrix"
+    "Image"
+    "Mesh"
+    "Shader"
+    "Model"
+    "ModelAnimation"
+    "Wave"
+    "AudioStream"
+    "Music"))
+
+(set! structs (filter (lambda (s) (not (member (car s) struct-blacklist)))
+                       structs))
 
 ;; enums is of the form ((name (variant . value) ...) ...)
 (define enums
@@ -181,9 +203,39 @@
   (format port "    return result;\n")
   (format port "}\n\n"))
 
+(define (generate-struct-accessors s port)
+  ;; generate make-struct
+  (format port "SCM rgacc_make_~a(~{SCM ~a~^, ~}) {\n" (car s) (map car (cdr s)))
+  (format port "    scm_dynwind_begin(0);\n")
+  (format port "    ~a *rg_data = scm_gc_malloc_pointerless(sizeof(~a), \"raylib-guile ptr\");\n" (car s) (car s))
+
+  (format port "~:{    rg_data->~a = ~a;\n~}"
+          (map (lambda (field)
+                 (list (car field)
+                       (scm->c port (cdr field) (car field))))
+               (cdr s)))
+
+  (format port "    SCM result = scm_make_foreign_object_1(rgtype_~a, rg_data);\n" (car s))
+  (format port "    scm_dynwind_end();\n")
+  (format port "    return result;\n")
+  (format port "}\n\n"))
+
+(define (accessor-names structs)
+  (fold append '()
+        (map (lambda (struct)
+               (list (list (format #f "make-~a" (car struct))
+                           (length (cdr struct))
+                           (format #f "rgacc_make_~a" (car struct)))))
+             structs)))
+
 (define (declare-struct name port)
   (format port "    rgtype_~a = scm_make_foreign_object_type(scm_from_utf8_symbol(\"~a\"), slots, NULL);\n"
           name name))
+
+(define (declare-accessors structs port)
+  (for-each (lambda (accessor)
+              (apply format port "    scm_c_define_gsubr(\"~a\", ~a, 0, 0, ~a);\n" accessor))
+            (accessor-names structs)))
 
 (define (declare-function f port)
   (format port "    scm_c_define_gsubr(\"~a\", ~a, 0, 0, rgfun_~a);\n"
@@ -197,6 +249,9 @@
     (format port "\n// struct slots\n")
     (for-each (lambda (s) (format port "static SCM rgtype_~a;\n" s)) struct-names)
 
+    (format port "\n// struct accessors\n")
+    (for-each (lambda (s) (generate-struct-accessors s port)) structs)
+
     (format port "\n// function definitions\n")
     (for-each (lambda (f) (generate-function f port)) functions)
 
@@ -205,6 +260,8 @@
     (format port "    // expose raylib structs to guile\n")
     (format port "    SCM slots = scm_list_1 (scm_from_utf8_symbol (\"data\"));\n")
     (for-each (lambda (s) (declare-struct s port)) struct-names)
+    (format port "    // expose raylib accessors to guile\n")
+    (declare-accessors structs port)
     (format port "    // expose raylib functions to guile\n")
     (for-each (lambda (f) (declare-function f port)) functions)
     (format port "}\n")))
@@ -219,6 +276,7 @@
                 (for-each (lambda (v) (format port "\n            ~a" (car v)))
                           (cdr e)))
               enums)
+    (for-each (lambda (acc) (format port "\n            ~a" (car acc))) (accessor-names structs))
     (format port "))\n\n")
     (format port "(load-extension \"libraylib-guile\" \"init_raylib_guile\")\n\n")
     (for-each (lambda (e)
