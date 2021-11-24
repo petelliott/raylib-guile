@@ -37,7 +37,12 @@
     "ModelAnimation"
     "Wave"
     "AudioStream"
-    "Music"))
+    "Music"
+    "VrDeviceInfo"
+    "VrStereoConfig"
+    "Font"
+    "Material"
+    "BoneInfo"))
 
 (set! structs (filter (lambda (s) (not (member (car s) struct-blacklist)))
                        structs))
@@ -166,7 +171,7 @@
       local))
    ((member stype struct-names)
     (format port "    scm_assert_foreign_object_type(rgtype_~a, ~a);\n" stype expr)
-    (format #f "*(~a*)scm_foreign_object_ref(~a, 0)" stype expr))
+    (format #f "(*(~a*)scm_foreign_object_ref(~a, 0))" stype expr))
    ((member dtype struct-names)
     (format port "    scm_assert_foreign_object_type(rgtype_~a, ~a);\n" dtype expr)
     (format #f "scm_foreign_object_ref(~a, 0)" expr))
@@ -218,14 +223,46 @@
   (format port "    SCM result = scm_make_foreign_object_1(rgtype_~a, rg_data);\n" (car s))
   (format port "    scm_dynwind_end();\n")
   (format port "    return result;\n")
-  (format port "}\n\n"))
+  (format port "}\n\n")
+  ;; generate getters
+  (for-each
+   (lambda (field)
+     (format port "SCM rgacc_~a_~a(SCM _obj) {\n" (car s) (car field))
+     (format port "    return ~a;\n"
+             ;; this will sometimes copy a struct when it could just wrap the
+             ;; pointer. this is probably safer for the GC, but might become a performance issue.
+             ;;(c->scm port (cdr field) (format #f "((~a *)scm_foreign_object_ref(_obj, 0))->~a"
+             ;;                                 (car s) (car field))))
+             (c->scm port (cdr field) (format #f "~a.~a" (scm->c port (car s) "_obj") (car field))))
+     (format port "}\n\n"))
+   (cdr s))
+  ;; generate setters
+  (for-each
+   (lambda (field)
+     (format port "SCM rgacc_~a_set_~a(SCM _obj, SCM ~a) {\n" (car s) (car field) (car field))
+     (format port "    ~a.~a = ~a;\n"
+             (scm->c port (car s) "_obj")
+             (car field)
+             (scm->c port (cdr field) (car field)))
+     (format port "    return SCM_UNSPECIFIED;\n")
+     (format port "}\n\n"))
+   (cdr s)))
+
 
 (define (accessor-names structs)
   (fold append '()
         (map (lambda (struct)
-               (list (list (format #f "make-~a" (car struct))
-                           (length (cdr struct))
-                           (format #f "rgacc_make_~a" (car struct)))))
+               `(,(list (format #f "make-~a" (car struct))
+                        (length (cdr struct))
+                        (format #f "rgacc_make_~a" (car struct)))
+                 ,@(map (lambda (field) (list (format #f "~a-~a" (car struct) (car field))
+                                              1
+                                              (format #f "rgacc_~a_~a" (car struct) (car field))))
+                        (cdr struct))
+                 ,@(map (lambda (field) (list (format #f "~a-set-~a!" (car struct) (car field))
+                                              2
+                                              (format #f "rgacc_~a_set_~a" (car struct) (car field))))
+                        (cdr struct))))
              structs)))
 
 (define (declare-struct name port)
