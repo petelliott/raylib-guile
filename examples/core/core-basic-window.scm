@@ -3,9 +3,6 @@
 (InitWindow 800 450 "raylib [core] example - basic window")
 (SetTargetFPS 60)
 
-(define RAYWHITE (make-Color 245 245 245 255))
-(define LIGHTGRAY (make-Color 200 200 200 255))
-
 (define (main-loop)
   (unless (WindowShouldClose)
     (BeginDrawing)
