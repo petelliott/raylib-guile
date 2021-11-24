@@ -1,6 +1,9 @@
 (use-modules (raylib))
 
-(InitWindow 800 450 "raylib [core] example - basic window")
+(define screen-width 800)
+(define screen-height 450)
+
+(InitWindow screen-width screen-height "raylib [core] example - basic window")
 (SetTargetFPS 60)
 
 (define (main-loop)
