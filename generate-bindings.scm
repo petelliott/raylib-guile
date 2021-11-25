@@ -84,7 +84,6 @@
     "DecompressData"
     "EncodeDataBase64"
     "DecodeDataBase64"
-    "UpdateCamera"
     "DrawLineStrip"
     "DrawTriangleFan"
     "DrawTriangleStrip"
