@@ -6,7 +6,7 @@ it provides direct GNU guile bindings for [raylib](https://github.com/raysan5/ra
 if you're not Jacob, don't worry: you can still use it under the terms of the
 [zlib license](/LICENSE), the same one used by raylib.
 
-## builing and installing
+## building and installing
 
 prerequisites:
  - guile 3.0 or later
@@ -20,6 +20,24 @@ sudo make install
 note: `make` will download the master-brach version of raylib's api
 description. if this causes errors you should download the `raylib_api.xml` that
 corresponds to the version of raylib you have installed.
+
+## generated API
+
+all supported functions are exported as is in the `(raylib)` library and take
+equivalant arguments. pointer/value arguments are equivalent for structs.
+
+the following accessors are generated for every struct type:
+```
+(make-{struct} field1 field2 ...)
+({struct}-field obj)
+({struct}-set-field! obj value)
+```
+
+## examples
+
+you can see some examples in the `examples/` directory. they are directly
+translated from raylib's examples, and as such may not represent very elegant
+scheme programming.
 
 ## to Jacob, my best programming buddy
 
