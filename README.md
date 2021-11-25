@@ -18,8 +18,9 @@ sudo make install
 ```
 
 note: `make` will download the master-brach version of raylib's api
-description. if this causes errors you should download the `raylib_api.xml` that
-corresponds to the version of raylib you have installed.
+description. if this causes errors you should change the `VERSION` file to the
+version of raylib you have installed. right now all tagged versions xml files
+are out of date, and you might need to generate them yourself.
 
 ## generated API
 
