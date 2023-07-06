@@ -33,14 +33,15 @@
                      30 255))
        (iota columns)))
 
+(define camera-mode CAMERA_FIRST_PERSON)
 
-(SetCameraMode camera CAMERA_FIRST_PERSON)
+(DisableCursor)
 
 (SetTargetFPS 60)
 
 ;; Main Game Loop
 (while (not (WindowShouldClose))
-  (UpdateCamera camera)
+  (UpdateCamera camera camera-mode)
 
   (BeginDrawing)
 
