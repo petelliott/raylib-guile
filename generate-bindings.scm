@@ -26,11 +26,9 @@
 
 (define struct-names (map car structs))
 
-;; TODO: add upstream support in raylib's parser for Matrix
 ;; these structs are still available, but there are no accessors for them.
 (define struct-blacklist
-  '("Matrix"
-    "Image"
+  '("Image"
     "Mesh"
     "Shader"
     "Model"
