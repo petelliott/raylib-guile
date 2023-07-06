@@ -42,7 +42,8 @@
     "VrStereoConfig"
     "Font"
     "Material"
-    "BoneInfo"))
+    "BoneInfo"
+    "FilePathList"))
 
 (set! structs (filter (lambda (s) (not (member (car s) struct-blacklist)))
                        structs))
@@ -116,7 +117,12 @@
     "UpdateSound"
     "LoadWaveSamples"
     "UnloadWaveSamples"
-    "UpdateAudioStream"))
+    "UpdateAudioStream"
+    "LoadUTF8"
+    "UnloadUTF8"
+    "DrawTextCodepoints"
+    "GetCodepointNext"
+    "GetCodepointPrevious"))
 
 
 ;; functions is of the form ((name rettype (type arg) ...) ...)
