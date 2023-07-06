@@ -122,7 +122,12 @@
     "UnloadUTF8"
     "DrawTextCodepoints"
     "GetCodepointNext"
-    "GetCodepointPrevious"))
+    "GetCodepointPrevious"
+    "SetAudioStreamCallback"
+    "AttachAudioStreamProcessor"
+    "DetachAudioStreamProcessor"
+    "AttachAudioMixedProcessor"
+    "DetachAudioMixedProcessor"))
 
 
 ;; functions is of the form ((name rettype (type arg) ...) ...)
