@@ -41,7 +41,9 @@
     "Font"
     "Material"
     "BoneInfo"
-    "FilePathList"))
+    "FilePathList"
+    "AutomationEvent"
+    "AutomationEventList"))
 
 (set! structs (filter (lambda (s) (not (member (car s) struct-blacklist)))
                        structs))
@@ -184,6 +186,7 @@
     (format port "    scm_assert_foreign_object_type(rgtype_~a, ~a);\n" dtype expr)
     (format #f "scm_foreign_object_ref(~a, 0)" expr))
    ((string= stype "float") (format #f "scm_to_double(~a)" expr))
+   ((string-contains type "*") (format #f "scm_to_pointer(~a)" expr))
    (else (format #f "scm_to_~a(~a)" stype expr))))
 
 (define (c->scm port type expr)
@@ -201,6 +204,7 @@
               stype local expr local local stype)
       (format #f "scm_make_foreign_object_1(rgtype_~a, ~a)" stype local)))
    ((string= stype "float") (format #f "scm_from_double(~a)" expr))
+   ((string-contains type "*") (format #f "scm_from_pointer(~a, NULL)" expr))
    (else (format #f "scm_from_~a(~a)" stype expr))))
 
 (define (generate-function f port)
