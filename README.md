@@ -6,6 +6,12 @@ it provides direct GNU guile bindings for [raylib](https://github.com/raysan5/ra
 if you're not Jacob, don't worry: you can still use it under the terms of the
 [zlib license](/LICENSE), the same one used by raylib.
 
+## setting the raylib version
+
+raylib-guile will generally only build when the `VERSION` file is set to the
+same version of raylib you have installed. `VERSION` can contain any git ref to
+the raylib repo, like `master` or any specific commit id.
+
 ## building and installing
 
 prerequisites:
