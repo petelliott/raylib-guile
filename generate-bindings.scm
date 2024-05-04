@@ -46,7 +46,28 @@
     "AutomationEventList"))
 
 (set! structs (filter (lambda (s) (not (member (car s) struct-blacklist)))
-                       structs))
+                      structs))
+
+(define custom-struct-constructors
+  '(("Matrix" . "(define (make-Matrix m0 m4 m8 m12 m1 m5 m9 m13 m2 m6 m10 m14 m3 m7 m11 m15)
+  (define m (construct-Matrix))
+  (Matrix-set-m0! m m0)
+  (Matrix-set-m1! m m1)
+  (Matrix-set-m2! m m2)
+  (Matrix-set-m3! m m3)
+  (Matrix-set-m4! m m4)
+  (Matrix-set-m5! m m5)
+  (Matrix-set-m6! m m6)
+  (Matrix-set-m7! m m7)
+  (Matrix-set-m8! m m8)
+  (Matrix-set-m9! m m9)
+  (Matrix-set-m10! m m10)
+  (Matrix-set-m11! m m11)
+  (Matrix-set-m12! m m12)
+  (Matrix-set-m13! m m13)
+  (Matrix-set-m14! m m14)
+  (Matrix-set-m15! m m15)
+  m)")))
 
 ;; enums is of the form ((name (variant . value) ...) ...)
 (define enums
@@ -222,15 +243,16 @@
 
 (define (generate-struct-accessors s port)
   ;; generate make-struct
-  (format port "SCM rgacc_make_~a(~{SCM ~a~^, ~}) {\n" (car s) (map car (cdr s)))
+  (define custom-construct (assoc (car s) custom-struct-constructors))
+  (format port "SCM rgacc_make_~a(~{SCM ~a~^, ~}) {\n" (car s) (if custom-construct '() (map car (cdr s))))
   (format port "    scm_dynwind_begin(0);\n")
   (format port "    ~a *rg_data = scm_gc_malloc_pointerless(sizeof(~a), \"raylib-guile ptr\");\n" (car s) (car s))
-
-  (format port "~:{    rg_data->~a = ~a;\n~}"
-          (map (lambda (field)
-                 (list (car field)
-                       (scm->c port (cdr field) (car field))))
-               (cdr s)))
+  (unless custom-construct
+    (format port "~:{    rg_data->~a = ~a;\n~}"
+            (map (lambda (field)
+                   (list (car field)
+                         (scm->c port (cdr field) (car field))))
+                 (cdr s))))
 
   (format port "    SCM result = scm_make_foreign_object_1(rgtype_~a, rg_data);\n" (car s))
   (format port "    scm_dynwind_end();\n")
@@ -264,8 +286,9 @@
 (define (accessor-names structs)
   (fold append '()
         (map (lambda (struct)
-               `(,(list (format #f "make-~a" (car struct))
-                        (length (cdr struct))
+               (define custom-construct (assoc (car struct) custom-struct-constructors))
+               `(,(list (format #f "~a-~a" (if custom-construct "construct" "make") (car struct))
+                        (if custom-construct 0 (length (cdr struct)))
                         (format #f "rgacc_make_~a" (car struct)))
                  ,@(map (lambda (field) (list (format #f "~a-~a" (car struct) (car field))
                                               1
@@ -354,9 +377,13 @@
                           (cdr e)))
               enums)
     (for-each (lambda (acc) (format port "\n            ~a" (car acc))) (accessor-names structs))
+    (for-each (lambda (c) (format port "\n            make-~a" (car c))) custom-struct-constructors)
     (for-each (lambda (color) (format port "\n            ~a" (car color))) raylib-colors)
     (format port "))\n\n")
     (format port "(load-extension \"libraylib-guile\" \"init_raylib_guile\")\n\n")
+    (for-each (lambda (c)
+                (format port "~a\n" (cdr c)))
+              custom-struct-constructors)
     (for-each (lambda (e)
                 (for-each (lambda (v) (format port "(define ~a ~a)\n" (car v) (cdr v)))
                           (cdr e)))
